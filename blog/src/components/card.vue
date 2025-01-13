@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch, useTemplateRef, onUnmounted } from 'vue';
 import MarkdownIt from 'markdown-it'
 
-const blogBase = 'src/blogs/';
+const blogBase = '/blogs/';
 const blogData = ref(null);
 const blogText = computed(() => blogData.value?.text);
 const blogDesc = computed(() => blogData.value?.desc.replace('\n', '<br>'));
