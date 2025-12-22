@@ -6,7 +6,7 @@ export const themeConfig: ThemeConfig = {
     website: 'https://alcoholicgirl.github.io/', // Site domain
     title: 'omuzone 🍶', // Site title
     author: 'omu', // Author name
-    description: 'omu\s blog', // Site description
+    description: 'omu\'s blog', // Site description
     language: 'en-US' // Default language
   },
 
