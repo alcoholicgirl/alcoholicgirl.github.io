@@ -1,5 +1,4 @@
 ---
 title: 'About'
 ---
-**CG & Music & Dev**
-
+_CG & Music & Dev_.
