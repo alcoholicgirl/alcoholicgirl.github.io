@@ -15,7 +15,7 @@ const markdownParser = new MarkdownIt({
 })
 
 const imagesGlob = import.meta.glob<{ default: ImageMetadata }>(
-  '/src/content/posts/_assets/**/*.{jpeg,jpg,png,gif,webp}'
+  '/src/content/posts/assets/**/*.{jpeg,jpg,png,gif,webp}'
 )
 
 /**
