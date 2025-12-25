@@ -59,22 +59,37 @@ $$
 \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]\\
 \end{array}
 $$
-其名为证据下界（**E**vidence **L**ower **BO**und，**ELBO**）。实际上可以经过计算得知：
+我们称它为证据下界（**E**vidence **L**ower **BO**und，**ELBO**）。实际上可以经过计算得知：
 
 $$
 \log p_\theta(\mathbf{x})=\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[\log \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]+D_{KL}(q_\phi(\mathbf{z}|\mathbf{x})||p_\theta(\mathbf{x}))
 $$
 
-## 玻尔兹曼分布
-根据最大熵原理，玻尔兹曼分布是 “能量越低，概率越大” 这个约束下最无偏的分布。
+## 基于能量的模型
+不管是经典的优化算法退火算法还是现代的扩散模型，都不约而同地从热力学中汲取了灵感——粒子更倾向于从能量高的地方转移到能量低的地方。基于能量的模型 (Energy Based Model, EBM) $E(\mathbf{x}; \theta)$ 并不直接拟合概率分布，它代表的是解空间中能量的分布情况。根据最大熵原理，玻尔兹曼分布是 “能量越低，概率越大” 这个约束下最无偏的分布：
 
-不管是经典的优化算法退火算法还是现代的扩散模型，都不约而同地从热力学中汲取了灵感。退火算法将分子热运动的概念应用于解空间上，并假设解空间上 “粒子” 的分布遵循玻尔兹曼分布：
 $$
-p(\mathbf{x}) = \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)/Z_0
+p(\mathbf{x};\theta) = \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)/Z_\theta
 $$
 
-其中，$Z_0$ 是归一化常数，使 $p(\mathbf{x})$ 在整个积分域上积分为 $1$ —— 再次与 intractable integral 撞了个满怀。
-## 分数函数
-分数函数的定义为 $s(\theta; x) = \nabla \log {\mathcal {L}}(\theta ;x)$。
+其中，$Z_\theta$ 是归一化常数，使 $p(\mathbf{x})$ 在整个积分域上积分为 $1$，其值等于 $\int \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)d\mathbf{x}$。为了方便，$kT$ 通常取 $1$。这个分布的对数似然为： $\log p(\mathbf{x};\theta) = -E(\mathbf{x};\theta) - \log Z_\theta$。这里的第二项 $\log Z_\theta$ 非常讨厌，它涉及在整个积分域上积分。
+
+## 分数函数、Fisher 散度 
+分数函数的定义为 $s(\theta; \mathbf{x}) = \nabla_\mathbf{x} \log p(\theta ;\mathbf{x})$。
+对于 EBM，直接计算可得：$s(\theta; \mathbf{x})=-\nabla_\mathbf{x}\log E(\mathbf{x};\theta)$。注意包含 $Z_\theta=\int \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)d\mathbf{x}$ 的项与 $\mathbf{x}$ 无关， $\mathbf{x}$ 仅作为积分变量出现。 
+
+对于分布 $p$ 与分布 $q$，若 $D_F(p||q)=0$，易证明 $p(x) = q(x)$：
+$$
+\begin{array}{}
+&\nabla_\mathbf{x} \left(\log p(\mathbf{x})-\log q(\mathbf{x})\right)=0\\
+\implies & \log p(\mathbf{x})-\log q(\mathbf{x})=C\\
+\implies & \log p(\mathbf{x}) = \log q(\mathbf{x}) + C\\
+\implies & p(\mathbf{x})=q(\mathbf{x})\exp(C)
+\end{array}
+$$
+
+由于 $p$、$q$ 满足归一化条件，可以知道二者相等。
+
+采取 Fisher 散度衡量两个分布的差异，模型的优化目标就变成了$\mathbb{E}_{p(\mathbf{x})} \left\| \nabla_x \log p(\mathbf{x}) - \nabla_x \log q(\mathbf{x}) \right\|^2$
 
 TODO
