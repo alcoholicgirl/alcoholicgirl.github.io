@@ -8,7 +8,7 @@ pubDate: '2025-12-19'
 在各种生成式的任务中，$p(\mathbf{x})$ 往往是未知且难以建模的，对应的样本空间 $\Omega$ 是巨大且复杂的，通常情况下我们仅可以管中窥豹地从中采样一系列样本 $\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_n$。
 
 一个自然的想法是用 $f(\mathbf{x}; \theta)$ 直接拟合 $p(\mathbf{x})$，两者的 KL 散度为：$$\begin{array}{rl}\\ 
-&D_{KL}(p\;||\;f)\\
+&D_{KL}(p\|f)\\
 =&\mathbb{E}_{p(\mathbf{x})}\left[\log\left(\frac{p(\mathbf{x})}{f(\mathbf{x}; \theta)}\right)\right]\\
 =&\mathbb{E}_{p(\mathbf{x})}\log p(\mathbf{x})-\mathbb{E}_{p(\mathbf{x})}\log f(\mathbf{x}; \theta)
 \end{array}$$
@@ -31,6 +31,202 @@ pubDate: '2025-12-19'
 初露端倪的是，计算机可以不费吹灰之力地从简单的分布中采样。例如均匀分布、正态分布（利用 Box-Muller 方法将均匀分布映射到正态分布）。若能把这种简单的分布用某种方式变换成复杂的分布，从前者中采样就相当于在后者中采样。
 
 例如，归一化流的思路就是把标准正态分布 $\mathcal{N}(0, 1)$ 变换为这样的复杂分布。这个变换是可逆的，从而能通过计算雅可比行列式保证变换后的分布同样是归一化的。
+
+## 基于能量的模型
+不管是经典的优化算法退火算法还是现代的扩散模型，都不约而同地从热力学中汲取了灵感——粒子更倾向于从能量高的地方转移到能量低的地方。基于能量的模型 (Energy Based Model, EBM) $E(\mathbf{x}; \theta)$ 并不直接拟合概率分布，它代表的是解空间中能量的分布情况。根据最大熵原理，玻尔兹曼分布是 “能量越低，概率越大” 这个约束下最无偏的分布：
+
+$$
+p(\mathbf{x};\theta) = \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)/Z_\theta
+$$
+$k$、$T$ 分别是玻尔兹曼常数与热力学温度。通常为了简化，使 $kT=1$：
+$$
+p(\mathbf{x};\theta) = \exp\left(-E(\mathbf{x};\theta)\right)/Z_\theta
+$$
+其中，$Z_\theta$ 是归一化常数，使 $p(\mathbf{x})$ 在整个积分域上积分为 $1$，其值等于 $\int \exp\left(-E(\mathbf{x};\theta)\right)d\mathbf{x}$。这个分布的对数似然为： $\log p(\mathbf{x};\theta) = -E(\mathbf{x};\theta) - \log Z_\theta$。第二项 $\log Z_\theta$ 涉及在整个积分域上积分，这也成了 EBM 的一个痛点。幸运的是，**分数函数**可以绕开这个无法计算的积分。
+
+## 分数函数、Fisher 散度 
+分数函数的定义为 $s(\mathbf{x};\theta) = \nabla_\mathbf{x} \log p(\mathbf{x};\theta)$。
+对于 EBM，直接计算可得：$s(\mathbf{x};\theta)=-\nabla_\mathbf{x}\log E(\mathbf{x};\theta)$。注意 $Z_\theta=\int \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)d\mathbf{x}$ 与 $\mathbf{x}$ 无关，$\mathbf{x}$ 仅作为积分变量出现。 
+
+对于分布 $p$ 与分布 $q$，若 $D_F(p\|q)=0$，易证明 $p(x) = q(x)$：
+$$
+\begin{array}{}
+&\nabla_\mathbf{x} \left(\log p(\mathbf{x})-\log q(\mathbf{x})\right)=0\\
+\implies & \log p(\mathbf{x})-\log q(\mathbf{x})=C\\
+\implies & \log p(\mathbf{x}) = \log q(\mathbf{x}) + C\\
+\implies & p(\mathbf{x})=q(\mathbf{x})\exp(C)
+\end{array}
+$$
+
+由于 $p$、$q$ 满足归一化条件，可以知道二者相等。
+
+此时不再用 KL 散度衡量两个分布的差异，而是以 Fisher 散度取而代之，模型的优化目标也就变成了：
+$$
+\frac{1}{2}
+\mathbb{E}_{\mathbf{x}\sim p(\mathbf{x})} \left\|
+    \nabla_{\mathbf{x}} \log p(\mathbf{x}) -
+    s(\mathbf{x};\theta)
+\right\|^2
+$$
+
+现在这个优化目标还不能拿来用，因为它包含了未知分布 $p(\mathbf{x})$ 的分数函数。不妨把这个期望展开：
+
+$$
+\mathbb{E}_{p}
+\|\nabla_{\mathbf{x}} \log p(\mathbf{x})\|^2
++
+\mathbb{E}_{p}
+\|s(\mathbf{x};\theta)\|^2
+-
+2\mathbb{E}_{p}
+\nabla_{\mathbf{x}} \log p(\mathbf{x})
+\cdot s(\mathbf{x};\theta)
+$$
+其中第一项与参数 $\theta$ 无关，可以去掉：
+$$
+\begin{array}{rl}
+&\mathbb{E}_{p}
+\|s(\mathbf{x};\theta)\|^2
+-
+2\mathbb{E}_{p}
+\nabla_{\mathbf{x}} \log p(\mathbf{x})
+\cdot s(\mathbf{x};\theta)\\
+=&
+\mathbb{E}_{p}
+\|s(\mathbf{x};\theta)\|^2
+-
+2\int p(\mathbf{x})
+\nabla_{\mathbf{x}} \log p(\mathbf{x})
+\cdot s(\mathbf{x};\theta)
+d \mathbf{x}
+\\
+=&
+\mathbb{E}_{p}
+\|s(\mathbf{x};\theta)\|^2
+-
+2\int p(\mathbf{x})
+\frac{
+\nabla_{\mathbf{x}} p(\mathbf{x})
+}{p(\mathbf{x})}
+\cdot s(\mathbf{x};\theta)
+d \mathbf{x}
+\\
+=&
+\mathbb{E}_{p}
+\|s(\mathbf{x};\theta)\|^2
+-
+2\int
+\nabla_{\mathbf{x}} p(\mathbf{x})
+\cdot s(\mathbf{x};\theta)
+d \mathbf{x}
+\\
+\end{array}
+$$
+对于交叉项 $\int\nabla_{\mathbf{x}} p(\mathbf{x})\cdot s(\mathbf{x};\theta)d \mathbf{x}$，采用分布积分：
+$$
+\begin{array}{rl}
+&\int
+\nabla_{\mathbf{x}} p(\mathbf{x})
+\cdot s(\mathbf{x};\theta)
+d \mathbf{x}\\
+=&
+\int
+\sum
+\frac{
+\partial p
+}{
+\partial x_i
+}
+s_i(\mathbf{x};\theta)d\mathbf{x}\\
+=&
+\int
+\sum
+\frac{
+\partial p
+}{
+\partial x_i
+}
+s_i(\mathbf{x};\theta)dx_1\cdots dx_i\cdots dx_n\\
+=&
+\int
+\sum
+
+\left(
+
+\int
+s_i(\mathbf{x};\theta)
+dp(\mathbf{x})
+
+\right)dx_1\cdots dx_{i-1}dx_{i+1}\cdots dx_n\\
+=&
+\int
+\sum
+\left(
+    \left[s_i(\mathbf{x};\theta)p(\mathbf{x})\right]_\partial
+-\int
+p(\mathbf{x})
+ds_i(\mathbf{x};\theta)
+\right)
+dx_1\cdots dx_{i-1}dx_{i+1}\cdots dx_n\\
+
+\end{array}
+$$
+适当地假设 $p(\mathbf{x})$ 在无穷远处趋于零，则其中的 $\left[s_i(\mathbf{x};\theta)p(\mathbf{x})\right]_\partial$ 为零：
+$$
+\begin{array}{rll}
+&
+\int
+\sum
+\left(
+    \left[s_i(\mathbf{x};\theta)p(\mathbf{x})\right]_\partial
+-\int
+p(\mathbf{x})
+ds_i(\mathbf{x};\theta)
+\right)
+dx_1\cdots dx_{i-1}dx_{i+1}\cdots dx_n\\
+=&
+\int
+\sum
+\left(
+-\int
+p(\mathbf{x})
+ds_i(\mathbf{x};\theta)
+\right)
+dx_1\cdots dx_{i-1}dx_{i+1}\cdots dx_n\\
+=&
+\int
+\sum
+\left(
+-\int
+p(\mathbf{x})\frac{
+\partial s_i(\mathbf{x};\theta)
+}{
+    \partial x_i
+}
+dx_i
+\right)
+dx_1\cdots dx_{i-1}dx_{i+1}\cdots dx_n\\
+=&-
+\int
+p(\mathbf{x})
+\sum
+\frac{
+    \partial s_i(\mathbf{x};\theta)
+}{
+    \partial x_i
+}
+d\mathbf{x}\\
+=&-\mathbb{E}_{\mathbf{x}\sim p(\mathbf{x})}\nabla_{\mathbf{x}}^Ts(\mathbf{x};\theta)
+\end{array}
+$$
+
+代入到原式中，得到最终的优化目标：
+$$\frac{1}{2}
+\mathbb{E}_{p}\left[
+\|s(\mathbf{x};\theta)\|^2
++2\nabla_{\mathbf{x}}^Ts(\mathbf{x};\theta)
+\right]
+$$
 
 ## 流形假设与证据下界
 早期的图片生成模型，如 Disco Diffusion，是直接在像素空间进行的。以 $512\times 512$ 的 RGB 图片生成为例，其维度达到了惊人的 $512 \times 512 \times 3 = 786432$ 维。要在这样的样本空间内训练一个生成式模型绝非易事。
@@ -62,34 +258,5 @@ $$
 我们称它为证据下界（**E**vidence **L**ower **BO**und，**ELBO**）。实际上可以经过计算得知：
 
 $$
-\log p_\theta(\mathbf{x})=\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[\log \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]+D_{KL}(q_\phi(\mathbf{z}|\mathbf{x})||p_\theta(\mathbf{x}))
+\log p_\theta(\mathbf{x})=\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[\log \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]+D_{KL}(q_\phi(\mathbf{z}|\mathbf{x})\|p_\theta(\mathbf{x}))
 $$
-
-## 基于能量的模型
-不管是经典的优化算法退火算法还是现代的扩散模型，都不约而同地从热力学中汲取了灵感——粒子更倾向于从能量高的地方转移到能量低的地方。基于能量的模型 (Energy Based Model, EBM) $E(\mathbf{x}; \theta)$ 并不直接拟合概率分布，它代表的是解空间中能量的分布情况。根据最大熵原理，玻尔兹曼分布是 “能量越低，概率越大” 这个约束下最无偏的分布：
-
-$$
-p(\mathbf{x};\theta) = \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)/Z_\theta
-$$
-
-其中，$Z_\theta$ 是归一化常数，使 $p(\mathbf{x})$ 在整个积分域上积分为 $1$，其值等于 $\int \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)d\mathbf{x}$。为了方便，$kT$ 通常取 $1$。这个分布的对数似然为： $\log p(\mathbf{x};\theta) = -E(\mathbf{x};\theta) - \log Z_\theta$。这里的第二项 $\log Z_\theta$ 非常讨厌，它涉及在整个积分域上积分。
-
-## 分数函数、Fisher 散度 
-分数函数的定义为 $s(\theta; \mathbf{x}) = \nabla_\mathbf{x} \log p(\theta ;\mathbf{x})$。
-对于 EBM，直接计算可得：$s(\theta; \mathbf{x})=-\nabla_\mathbf{x}\log E(\mathbf{x};\theta)$。注意包含 $Z_\theta=\int \exp\left(-\frac{E(\mathbf{x};\theta)}{kT}\right)d\mathbf{x}$ 的项与 $\mathbf{x}$ 无关， $\mathbf{x}$ 仅作为积分变量出现。 
-
-对于分布 $p$ 与分布 $q$，若 $D_F(p||q)=0$，易证明 $p(x) = q(x)$：
-$$
-\begin{array}{}
-&\nabla_\mathbf{x} \left(\log p(\mathbf{x})-\log q(\mathbf{x})\right)=0\\
-\implies & \log p(\mathbf{x})-\log q(\mathbf{x})=C\\
-\implies & \log p(\mathbf{x}) = \log q(\mathbf{x}) + C\\
-\implies & p(\mathbf{x})=q(\mathbf{x})\exp(C)
-\end{array}
-$$
-
-由于 $p$、$q$ 满足归一化条件，可以知道二者相等。
-
-采取 Fisher 散度衡量两个分布的差异，模型的优化目标就变成了$\mathbb{E}_{p(\mathbf{x})} \left\| \nabla_x \log p(\mathbf{x}) - \nabla_x \log q(\mathbf{x}) \right\|^2$
-
-TODO
