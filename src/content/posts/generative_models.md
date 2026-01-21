@@ -252,11 +252,13 @@ $$
 =&\log\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[
 \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]\\
 \ge& \mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[\log 
-\frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]\\
+\frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]&\text{(琴生不等式)}\\
 \end{array}
 $$
-我们称它为证据下界（**E**vidence **L**ower **BO**und，**ELBO**）。实际上可以经过计算得知：
+我们称它为证据下界（**E**vidence **L**ower **BO**und，**ELBO**）。实际上可以经过进一步计算得知：
 
 $$
 \log p_\theta(\mathbf{x})=\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}\left[\log \frac {p_\theta(\mathbf{x}_i,\mathbf{z})}   {q_\phi(\mathbf{z}|\mathbf{x})}\right]+D_{KL}(q_\phi(\mathbf{z}|\mathbf{x})\|p_\theta(\mathbf{x}))
 $$
+
+TODO
