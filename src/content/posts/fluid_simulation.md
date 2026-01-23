@@ -23,11 +23,12 @@ pubDate: '2026-01-19'
 
 ### 动量守恒
 
-由 $\mathbf{f} = m\mathbf{a}$ 可得：
+由 $\mathbf{F} = m\mathbf{a}$ 可得：
 
 $$
 \begin{array}{rll}
-\mathbf{f}=&
+\mathbf{f}=
+\frac{\Delta\mathbf{F}} {\Delta V}=&
 \rho \frac{\mathrm{d}\mathbf{u}}{\mathrm{d}t}
 \\
 =&\rho \frac{\mathrm{d}\mathbf{u}(x,y,z,t)}{\mathrm{d}t}
@@ -75,4 +76,18 @@ $$
 
 $$
 \mathbf{g} - \nabla p + \nabla \cdot  \mathrm{T}=\rho \left(\mathbf{u}\cdot\nabla\mathbf{u} + \frac{\mathrm{d}\mathbf{u}}{\mathrm{d}t}\right)
+$$
+
+可以进一步写成物质导数的表达方法：
+$$
+\rho \frac{\mathrm{D}\mathbf{u}}{\mathrm{D}t}=\mathbf{g}-\nabla p + \nabla \cdot T
+$$
+
+其中 $\nabla \cdot T$ 由流体性质决定，如对于牛顿流体，应力与变形程度成比例：
+$$
+\tau_{ij} = \mu\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)
+$$
+经进一步推导可得
+$$
+\nabla\cdot T = \mu \nabla^2 v
 $$
