@@ -47,3 +47,9 @@ $$
 (\mathbf{u}\cdot\nabla) \mathbf{u}+\frac{\partial\mathbf{u}}{\partial t}\\
 \end{array}
 $$
+
+### 外力、扩散项
+TODO
+
+### 压力项
+TODO
