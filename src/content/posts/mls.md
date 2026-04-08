@@ -5,6 +5,8 @@ pubDate: '2026-04-08'
 
 MLS (Moving Least Squares，移动最小二乘法) 是一种局部拟合方案，常用于诸如表面重建、粒子模拟之类的任务。简单地说，对于一系列离散数据点，传统的最小二乘法试图全局拟合，MLS 注重于在某个点周围拟合出一个局部结构。
 
+---
+
 有一组离散点 $\mathbf x_i$，其对应属性值 $u_i$。对于其中一点 $\mathbf z$，MLS 的核心方法如下：
 
 1. 定义基函数组 $\mathrm P(\mathbf x)$。如三维线性基 $\mathrm P = \begin{pmatrix}1&x&y&z\end{pmatrix}^T$。
@@ -15,6 +17,8 @@ $$
 J&= \sum _i w_i \|\mathrm P^T(\mathbf x_i - \mathbf z)\mathrm c(\mathbf z) - u_i \|^2
 \end{array}
 $$  
+
+---
 
 接下来导出 $\mathrm c$ 的解析解。
 
